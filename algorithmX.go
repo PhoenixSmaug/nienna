@@ -15,14 +15,13 @@ type column struct {
 	left, right *column
 	head        node
 	length      int
-	debug       *column // TODO
+	id          int
 }
 
 type node struct {
 	up, down, left, right *node
 	col                   *column
 	value                 int
-	debug                 *node // TODO
 }
 
 func initialize(primary int, secondary int) *matrix {
@@ -38,22 +37,16 @@ func initialize(primary int, secondary int) *matrix {
 	m.columns[0].right = &m.columns[1]
 	m.columns[0].left = &m.columns[primary]
 
-	m.columns[0].debug = &m.columns[0] // TODO
-
 	// initialize primary columns
 	for i := 1; i <= primary; i++ {
-		m.columns[i] = column{left: &m.columns[i-1], right: &m.columns[(i+1)%(primary+1)]}
-		m.columns[i].debug = &m.columns[i]           // TODO
-		m.columns[i].head.debug = &m.columns[i].head // TODO
+		m.columns[i] = column{left: &m.columns[i-1], right: &m.columns[(i+1)%(primary+1)], id: i}
 		m.columns[i].head.down = &m.columns[i].head
 		m.columns[i].head.up = &m.columns[i].head
 	}
 
 	// initialize secondary columns (not linked into header row)
 	for i := primary + 1; i <= numCols; i++ {
-		m.columns[i] = column{left: &m.columns[i], right: &m.columns[i]}
-		m.columns[i].debug = &m.columns[i]           // TODO
-		m.columns[i].head.debug = &m.columns[i].head // TODO
+		m.columns[i] = column{left: &m.columns[i], right: &m.columns[i], id: i}
 		m.columns[i].head.down = &m.columns[i].head
 		m.columns[i].head.up = &m.columns[i].head
 	}
@@ -81,7 +74,6 @@ func addRow(m *matrix, indices []int) {
 	for _, e := range indices {
 		// insert new node in last row of column
 		current := node{value: m.numRows, col: &m.columns[e], down: &m.columns[e].head, up: m.columns[e].head.up}
-		current.debug = &current // TODO
 
 		m.columns[e].head.up.down = &current
 		m.columns[e].head.up = &current
@@ -148,16 +140,82 @@ func heuristic(m *matrix) *column {
 	// Knuths MRV Heuristic, choose column which is fulfilled by least number of rows
 
 	// start with column 1
-	minLen := m.columns[1].length
-	minCol := &m.columns[1]
+	minLen := -1
+	var minCol *column
 
 	// check if smaller column exists
-	for c := m.columns[1].right; c != &m.columns[0]; c = c.right {
-		if c.length < minLen {
+	for c := m.columns[0].right; c != &m.columns[0]; c = c.right {
+		if c.length < minLen || minLen == -1 {
 			minLen = c.length
 			minCol = c
 		}
 	}
 
 	return minCol
+}
+
+func solve(m *matrix, sol []*node, collector *[][]int, first bool) []*node {
+	// problem is solved
+	if m.columns[0].left == &m.columns[0] {
+		var solution []int
+		for _, e := range sol {
+			solution = append(solution, e.value)
+		}
+
+		*collector = append(*collector, solution)
+		return sol
+	}
+
+	// MRV heuristic
+	col := heuristic(m)
+	if col.length == 0 {
+		return nil
+	}
+
+	cover(col)
+
+	// classic backtracking algorithm
+	for r := col.head.down; r != &col.head; r = r.down {
+		sol = append(sol, r)
+
+		for n := r.right; n != r; n = n.right {
+			cover(n.col)
+		}
+
+		result := solve(m, sol, collector, first)
+
+		undo := sol[len(sol)-1]
+		col = undo.col
+		sol = sol[:len(sol)-1]
+
+		for n := undo.left; n != undo; n = n.left {
+			uncover(n.col)
+		}
+
+		if first && result != nil {
+			return result
+		}
+	}
+
+	uncover(col)
+
+	return nil
+}
+
+func findFirst(m *matrix) [][]int {
+	var sol []*node
+	var coll [][]int
+
+	solve(m, sol, &coll, true)
+
+	return coll
+}
+
+func findAll(m *matrix) [][]int {
+	var sol []*node
+	var coll [][]int
+
+	solve(m, sol, &coll, false)
+
+	return coll
 }
