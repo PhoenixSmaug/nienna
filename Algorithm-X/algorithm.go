@@ -1,34 +1,34 @@
-package main
+package algorithmX
 
 import (
 	"fmt"
 )
 
 // root node is columns[0]
-type matrix struct {
-	columns []column
+type Matrix struct {
+	columns []Column
 	numCols int
 	numRows int
 }
 
-type column struct {
-	left, right *column
-	head        node
+type Column struct {
+	left, right *Column
+	head        Node
 	length      int
 	id          int
 }
 
-type node struct {
-	up, down, left, right *node
-	col                   *column
+type Node struct {
+	up, down, left, right *Node
+	col                   *Column
 	value                 int
 }
 
-func initialize(primary int, secondary int) *matrix {
+func Initialize(primary int, secondary int) *Matrix {
 	numCols := primary + secondary
 
 	// setup first header row of matrix
-	m := matrix{columns: make([]column, numCols+1), numCols: numCols, numRows: 0}
+	m := Matrix{columns: make([]Column, numCols+1), numCols: numCols, numRows: 0}
 
 	// root node has an empty column
 	m.columns[0].head.down = &m.columns[0].head
@@ -39,14 +39,14 @@ func initialize(primary int, secondary int) *matrix {
 
 	// initialize primary columns
 	for i := 1; i <= primary; i++ {
-		m.columns[i] = column{left: &m.columns[i-1], right: &m.columns[(i+1)%(primary+1)], id: i}
+		m.columns[i] = Column{left: &m.columns[i-1], right: &m.columns[(i+1)%(primary+1)], id: i}
 		m.columns[i].head.down = &m.columns[i].head
 		m.columns[i].head.up = &m.columns[i].head
 	}
 
 	// initialize secondary columns (not linked into header row)
 	for i := primary + 1; i <= numCols; i++ {
-		m.columns[i] = column{left: &m.columns[i], right: &m.columns[i], id: i}
+		m.columns[i] = Column{left: &m.columns[i], right: &m.columns[i], id: i}
 		m.columns[i].head.down = &m.columns[i].head
 		m.columns[i].head.up = &m.columns[i].head
 	}
@@ -54,8 +54,8 @@ func initialize(primary int, secondary int) *matrix {
 	return &m
 }
 
-// add sparse row encoded as indices
-func addRow(m *matrix, indices []int) {
+func AddRow(m *Matrix, indices []int) {
+	// add sparse row encoded as indices
 
 	// input verification
 	last := -1
@@ -73,7 +73,7 @@ func addRow(m *matrix, indices []int) {
 
 	for _, e := range indices {
 		// insert new node in last row of column
-		current := node{value: m.numRows, col: &m.columns[e], down: &m.columns[e].head, up: m.columns[e].head.up}
+		current := Node{value: m.numRows, col: &m.columns[e], down: &m.columns[e].head, up: m.columns[e].head.up}
 
 		m.columns[e].head.up.down = &current
 		m.columns[e].head.up = &current
@@ -88,7 +88,7 @@ func addRow(m *matrix, indices []int) {
 	}
 }
 
-func cover(c *column) {
+func cover(c *Column) {
 	// remove from header row
 	c.left.right = c.right
 	c.right.left = c.left
@@ -105,15 +105,7 @@ func cover(c *column) {
 	}
 }
 
-func coverCol(n *node) {
-	// cover all other columns of selected row
-
-	for e := n.right; e != n; e = e.right {
-		cover(e.col)
-	}
-}
-
-func uncover(c *column) {
+func uncover(c *Column) {
 	// uncover all rows covered by column c
 	for row := c.head.up; row != &(c.head); row = row.up {
 		for e := row.left; e != row; e = e.left {
@@ -128,20 +120,12 @@ func uncover(c *column) {
 	c.right.left = c
 }
 
-func uncoverCol(n *node) {
-	// cover all other columns of selected row
-
-	for e := n.left; e != n; e = e.left {
-		uncover(e.col)
-	}
-}
-
-func heuristic(m *matrix) *column {
+func heuristic(m *Matrix) *Column {
 	// Knuths MRV Heuristic, choose column which is fulfilled by least number of rows
 
 	// start with column 1
 	minLen := -1
-	var minCol *column
+	var minCol *Column
 
 	// check if smaller column exists
 	for c := m.columns[0].right; c != &m.columns[0]; c = c.right {
@@ -154,7 +138,7 @@ func heuristic(m *matrix) *column {
 	return minCol
 }
 
-func solve(m *matrix, sol []*node, collector *[][]int, first bool) []*node {
+func solve(m *Matrix, sol []*Node, collector *[][]int, first bool) []*Node {
 	// problem is solved
 	if m.columns[0].left == &m.columns[0] {
 		var solution []int
@@ -202,17 +186,21 @@ func solve(m *matrix, sol []*node, collector *[][]int, first bool) []*node {
 	return nil
 }
 
-func findFirst(m *matrix) [][]int {
-	var sol []*node
+func FindFirst(m *Matrix) []int {
+	var sol []*Node
 	var coll [][]int
 
 	solve(m, sol, &coll, true)
 
-	return coll
+	if len(coll) == 0 {
+		fmt.Println("Error: No solution found.")
+		return nil
+	}
+	return coll[0]
 }
 
-func findAll(m *matrix) [][]int {
-	var sol []*node
+func FindAll(m *Matrix) [][]int {
+	var sol []*Node
 	var coll [][]int
 
 	solve(m, sol, &coll, false)
