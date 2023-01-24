@@ -9,6 +9,7 @@ type Matrix struct {
 	columns []Column
 	numCols int
 	numRows int
+	sol     []*Node
 }
 
 type Column struct {
@@ -122,8 +123,6 @@ func uncover(c *Column) {
 
 func heuristic(m *Matrix) *Column {
 	// Knuths MRV Heuristic, choose column which is fulfilled by least number of rows
-
-	// start with column 1
 	minLen := -1
 	var minCol *Column
 
@@ -138,16 +137,16 @@ func heuristic(m *Matrix) *Column {
 	return minCol
 }
 
-func solve(m *Matrix, sol []*Node, collector *[][]int, first bool) []*Node {
+func solve(m *Matrix, collector *[][]int, first bool) []*Node {
 	// problem is solved
 	if m.columns[0].left == &m.columns[0] {
 		var solution []int
-		for _, e := range sol {
+		for _, e := range m.sol {
 			solution = append(solution, e.value)
 		}
 
 		*collector = append(*collector, solution)
-		return sol
+		return m.sol
 	}
 
 	// MRV heuristic
@@ -160,17 +159,17 @@ func solve(m *Matrix, sol []*Node, collector *[][]int, first bool) []*Node {
 
 	// classic backtracking algorithm
 	for r := col.head.down; r != &col.head; r = r.down {
-		sol = append(sol, r)
+		m.sol = append(m.sol, r)
 
 		for n := r.right; n != r; n = n.right {
 			cover(n.col)
 		}
 
-		result := solve(m, sol, collector, first)
+		result := solve(m, collector, first)
 
-		undo := sol[len(sol)-1]
+		undo := m.sol[len(m.sol)-1]
 		col = undo.col
-		sol = sol[:len(sol)-1]
+		m.sol = m.sol[:len(m.sol)-1]
 
 		for n := undo.left; n != undo; n = n.left {
 			uncover(n.col)
@@ -187,10 +186,9 @@ func solve(m *Matrix, sol []*Node, collector *[][]int, first bool) []*Node {
 }
 
 func FindFirst(m *Matrix) []int {
-	var sol []*Node
 	var coll [][]int
 
-	solve(m, sol, &coll, true)
+	solve(m, &coll, true)
 
 	if len(coll) == 0 {
 		fmt.Println("Error: No solution found.")
@@ -200,10 +198,69 @@ func FindFirst(m *Matrix) []int {
 }
 
 func FindAll(m *Matrix) [][]int {
-	var sol []*Node
 	var coll [][]int
 
-	solve(m, sol, &coll, false)
+	solve(m, &coll, false)
 
 	return coll
+}
+
+func PrettyPrint(m *Matrix) {
+	var elements [][]bool
+	for i := 0; i < m.numRows; i++ {
+		elements = append(elements, make([]bool, m.numCols))
+	}
+
+	for i := 1; i <= m.numCols; i++ {
+		h := m.columns[i]
+		for e := h.head.down; *e != h.head; e = e.down {
+			elements[e.value-1][i-1] = true
+		}
+	}
+
+	numPrimary := 0
+	for c := m.columns[0].right; c != &m.columns[0]; c = c.right {
+		numPrimary++
+	}
+
+	for x := 1; x <= m.numRows; x++ {
+		fmt.Print("|")
+		for y := 1; y <= m.numCols; y++ {
+			if elements[x-1][y-1] {
+				fmt.Print("X|")
+			} else {
+				fmt.Print(" |")
+			}
+			if y == numPrimary {
+				fmt.Print("|")
+			}
+		}
+		fmt.Println("")
+	}
+}
+
+// add option to solution before search
+func ForceOption(m *Matrix, id int, value int) {
+	// remove row value from m, needs column id with link to row
+	col := &m.columns[id]
+
+	// collect columns covered by forced option to cover together later, otherwise not all are found
+	var columns []*Column
+	columns = append(columns, col)
+
+	for r := col.head.down; r != &col.head; r = r.down {
+		if r.value == value {
+			m.sol = append(m.sol, r)
+
+			for n := r.right; n != r; n = n.right {
+				columns = append(columns, n.col)
+			}
+
+			for _, e := range columns {
+				cover(e)
+			}
+
+			continue
+		}
+	}
 }
