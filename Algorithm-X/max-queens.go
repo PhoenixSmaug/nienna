@@ -6,7 +6,7 @@ import (
 )
 
 func maxQueensMatrix(n int) *Matrix {
-	m := Initialize(2*n, 5*n-3)
+	m := Initialize(2*n, 4*n-2)
 
 	/*
 		Dancing Links Matrix:
