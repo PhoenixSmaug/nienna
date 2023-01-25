@@ -197,6 +197,26 @@ func FindFirst(m *Matrix) []int {
 	return coll[0]
 }
 
+func FindRows(m *Matrix) [][]bool {
+	// Return row ids and their content
+
+	sol := solve(m, &[][]int{}, true)
+
+	var rows [][]bool
+	for i := 0; i < len(sol); i++ {
+		rows = append(rows, make([]bool, m.numCols))
+	}
+
+	for i, e := range sol {
+		rows[i][e.col.id-1] = true
+		for n := e.right; n != e; n = n.right {
+			rows[i][n.col.id-1] = true
+		}
+	}
+
+	return rows
+}
+
 func FindAll(m *Matrix) [][]int {
 	var coll [][]int
 
