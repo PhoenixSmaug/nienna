@@ -9,9 +9,16 @@ func maxQueensMatrix(n int) *Matrix {
 	m := Initialize(2*n, 4*n-2)
 
 	/*
-		Dancing Links Matrix:
-		[row (n)], [Column (n)], [diagonal down (2n - 3)], [diagonal up (2n - 3)]
-		[1, n], [n+1, 2n], [2n+1, 4n-1], [4n-1, 6n - 2]
+		+-----------------+------------------+---------------------+---------------------------------+------------------------------+
+		|        -        | Queen on row (n) | Queen on column (n) | Queen on down diagonal (2n - 1) | Queen on up diagonal (2n -1) |
+		+-----------------+------------------+---------------------+---------------------------------+------------------------------+
+		| Queen on (1, 1) |                  |                     |                                 |                              |
+		| Queen on (1, 2) |                  |                     |                                 |                              |
+		| ...             |                  |                     |                                 |                              |
+		| Queen on (2, 1) |                  |                     |                                 |                              |
+		| ...             |                  |                     |                                 |                              |
+		| Queen on (n, n) |                  |                     |                                 |                              |
+		+-----------------+------------------+---------------------+---------------------------------+------------------------------+
 
 		down diagonals: c = x - y (c in -(n-1):n-1), so translation: ((x - y) + n) + 2n
 		up diagonals: c = x + y (c in 2:2n), so translation ((x + y) - 1) + (2n + 2n - 1)
@@ -37,7 +44,7 @@ func PrintMaxQueens(n int) {
 	for x := 1; x <= n; x++ {
 		fmt.Print("|")
 		for y := 1; y <= n; y++ {
-			if contains(solution, x+(y-1)*n) {
+			if vecContains(solution, x+(y-1)*n) {
 				fmt.Print("X|")
 			} else {
 				fmt.Print(" |")
@@ -61,7 +68,7 @@ func CountMaxQueens(n int) {
 	fmt.Printf("Time: %s\n\n", elapsed)
 }
 
-func contains(vec []int, el int) bool {
+func vecContains(vec []int, el int) bool {
 	for _, e := range vec {
 		if e == el {
 			return true
