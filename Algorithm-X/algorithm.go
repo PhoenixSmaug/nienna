@@ -259,7 +259,7 @@ func PrettyPrint(m *Matrix) {
 	}
 }
 
-// add option to solution before search
+// force row to solution before starting search
 func ForceOption(m *Matrix, id int, value int) {
 	// remove row value from m, needs column id with link to row
 	col := &m.columns[id]
