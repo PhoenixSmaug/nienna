@@ -6,11 +6,17 @@ import (
 )
 
 func main() {
-	// n Queens problem
+	// Example: n Queens problem
+
+	// Solve the n Queens problem on a 60x60 board
 	algorithmX.PrintMaxQueens(60)
+
+	// Count the number of solutions to the n Queens problem on a 13x13 board
 	algorithmX.CountMaxQueens(13)
 
-	// Sudoku solving
+	// Example: Sudoku solving
+
+	// example sudoku
 	mat := [9][9]int{{0, 0, 0, 0, 0, 0, 0, 0, 0},
 		{0, 0, 0, 0, 0, 3, 0, 8, 5},
 		{0, 0, 1, 0, 2, 0, 0, 0, 0},
@@ -20,17 +26,18 @@ func main() {
 		{5, 0, 0, 0, 0, 0, 0, 7, 3},
 		{0, 0, 2, 0, 1, 0, 0, 0, 0},
 		{0, 0, 0, 0, 4, 0, 0, 0, 9}}
-
 	s := algorithmX.Sudoku{Board: mat}
 
+	// Solve the sudoku s
 	algorithmX.ShowSudoku(s)
 	algorithmX.SolveSudoku(&s)
 	algorithmX.ShowSudoku(s)
 
 	fmt.Println("")
-	fmt.Println("")
 
-	// Pentomino packing
+	// Example: Polyomino packing
+
+	// the 12 pentominoes as example
 	f := algorithmX.Polyomino{Tiles: [][]bool{{false, true, true}, {true, true, false}, {false, true, false}}}
 	i := algorithmX.Polyomino{Tiles: [][]bool{{true}, {true}, {true}, {true}, {true}}}
 	l := algorithmX.Polyomino{Tiles: [][]bool{{true, false}, {true, false}, {true, false}, {true, true}}}
@@ -46,6 +53,6 @@ func main() {
 
 	pentominoes := []algorithmX.Polyomino{f, i, l, n, p, t, u, v, w, x, y, z}
 
-	// pack the 12 pentominoes into the 10x6 rectangle
+	// Find a way to pack the pentominoes into the 10x6 rectangle
 	algorithmX.SolvePacking(pentominoes, 10, 6)
 }

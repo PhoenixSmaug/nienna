@@ -5,11 +5,13 @@ import (
 	"time"
 )
 
+// Polyomino represents a polyomino with a two-dimensional array Tiles and an id field for assignment.
 type Polyomino struct {
 	Tiles [][]bool
 	id    int
 }
 
+// PrintPolyomino prints a given polyomino.
 func PrintPolyomino(p Polyomino) {
 	for _, vec := range p.Tiles {
 		for _, e := range vec {
@@ -23,27 +25,27 @@ func PrintPolyomino(p Polyomino) {
 	}
 }
 
+/*
+packingMatrix constructs the corresponding exact cover matrix for the polyomino packing problem (fit all given
+polyominoes perfectly in a wxh rectangle with rotation and flipping being allowed). In the table the options
+where the polyomino is out of bounds need to be filtered out.
+
++-------------------------------+----------------------+--------------------+
+|               -               | Tile covered (w * h) | Polyomino used (n) |
++-------------------------------+----------------------+--------------------+
+| Polyomino 1 state 1 on (1, 1) |                      |                    |
+| Polyomino 1 state 2 on (1, 1) |                      |                    |
+| ...                           |                      |                    |
+| Polyomino 1 state 1 on (1, 2) |                      |                    |
+| ...                           |                      |                    |
+| Polyomino 1 state 8 on (h, w) |                      |                    |
+| Polyomino 2 state 1 on (1, 1) |                      |                    |
+| ...                           |                      |                    |
+| Polyomino n state 1 on (h, w) |                      |                    |
++-------------------------------+----------------------+--------------------+
+*/
 func packingMatrix(polys []Polyomino, w int, h int) *Matrix {
-	/*
-		+-------------------------------+----------------------+--------------------+
-		|               -               | Tile covered (w * h) | Polyomino used (n) |
-		+-------------------------------+----------------------+--------------------+
-		| Polyomino 1 state 1 on (1, 1) |                      |                    |
-		| Polyomino 1 state 2 on (1, 1) |                      |                    |
-		| ...                           |                      |                    |
-		| Polyomino 1 state 1 on (1, 2) |                      |                    |
-		| ...                           |                      |                    |
-		| Polyomino 1 state 8 on (h, w) |                      |                    |
-		| Polyomino 2 state 1 on (1, 1) |                      |                    |
-		| ...                           |                      |                    |
-		| Polyomino n state 1 on (h, w) |                      |                    |
-		+-------------------------------+----------------------+--------------------+
-
-		filter out options where polyomino is out of bounds
-	*/
-
 	m := Initialize(w*h+len(polys), 0)
-	PrettyPrint(m)
 
 	// enumerate polyominoes from 1 to n
 	for i := range polys {
@@ -79,10 +81,11 @@ func packingMatrix(polys []Polyomino, w int, h int) *Matrix {
 	return m
 }
 
+// printPacking prints out the packing solution rows with "A" for the first polyomino, "B" for the second, ...
 func printPacking(rows [][]bool, w int, h int) {
-	var output [][]int
+	var output [][]int32
 	for i := 0; i < h; i++ {
-		output = append(output, make([]int, w))
+		output = append(output, make([]int32, w))
 	}
 
 	for i := 0; i < len(rows); i++ {
@@ -98,19 +101,21 @@ func printPacking(rows [][]bool, w int, h int) {
 		for j := 0; j < len(rows[0]); j++ {
 			if rows[i][j] && j != id+w*h {
 				// reverse (x, y) -> x + y * w
-				output[j/w][j%w] = id
+				output[j/w][j%w] = rune('A' + id)
 			}
 		}
 	}
 
 	for i := 0; i < len(output); i++ {
 		for j := 0; j < len(output[0]); j++ {
-			fmt.Printf("%02d ", output[i][j])
+			fmt.Printf("%c", output[i][j])
+			fmt.Print(" ")
 		}
 		fmt.Println("")
 	}
 }
 
+// SolvePacking solves the packing problem and displays the search time.
 func SolvePacking(polys []Polyomino, w int, h int) {
 	m := packingMatrix(polys, w, h)
 
@@ -123,6 +128,7 @@ func SolvePacking(polys []Polyomino, w int, h int) {
 	fmt.Printf("Time: %s\n", elapsed)
 }
 
+// CountPacking counts the number of solutions to the packing problem and displays the search time.
 func CountPacking(polys []Polyomino, w int, h int) {
 	m := packingMatrix(polys, w, h)
 
@@ -134,6 +140,7 @@ func CountPacking(polys []Polyomino, w int, h int) {
 	fmt.Printf("Time: %s\n", elapsed)
 }
 
+// uniqRotations returns the up to 8 possibilities from rotation and flipping filtered for uniqueness
 func uniqRotations(coll *[]Polyomino, p *Polyomino) {
 	var rotations []Polyomino
 	for i := 0; i < 8; i++ {
@@ -148,11 +155,9 @@ func uniqRotations(coll *[]Polyomino, p *Polyomino) {
 	}
 }
 
+// rotatePolyomino returns for 0 <= d <= 3 the polyomino p with d 90 degree right turns and for 4 <= d <= 7 the
+// left-right mirrored polyomino p with (d - 4) 90 degree turns
 func rotatePolyomino(p Polyomino, d int) Polyomino {
-	// rotate and mirror polyominoes
-	// 0 <= d <= 3: return polyomino with d 90 degree right turns
-	// 4 <= d <= 7: return left-right mirrored polyomino with (d - 4) 90 degree turns
-
 	d = d % 8
 
 	pNew := Polyomino{id: p.id, Tiles: p.Tiles}
@@ -182,6 +187,7 @@ func rotatePolyomino(p Polyomino, d int) Polyomino {
 	return pNew
 }
 
+// rotate90 rotates a polyomino 90 degrees clockwise
 func rotate90(p *Polyomino) {
 	h := len(p.Tiles)
 	w := len(p.Tiles[0])
@@ -200,6 +206,7 @@ func rotate90(p *Polyomino) {
 	p.Tiles = tiles
 }
 
+// equals checks if two polyominoes are equal
 func equals(p *Polyomino, q *Polyomino) bool {
 	if len(p.Tiles) != len(q.Tiles) || len(p.Tiles[0]) != len(q.Tiles[0]) {
 		return false
@@ -215,6 +222,7 @@ func equals(p *Polyomino, q *Polyomino) bool {
 	return true
 }
 
+// contains checks if polyomino vector contains the polyomino p by the trivial approach.
 func contains(polys *[]Polyomino, p *Polyomino) bool {
 	for _, e := range *polys {
 		if equals(&e, p) {
