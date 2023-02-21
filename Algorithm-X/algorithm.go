@@ -4,14 +4,18 @@ import (
 	"fmt"
 )
 
-// root node is columns[0]
+// Matrix represents a sparse matrix as a toroidal double linked list.
+// Each column represents a constraint, which either has to covered exactly once (primary constraint)
+// or at most once (secondary constraint). Each row represents an option, which when included in the solution
+// covers all columns of its ones entries.
 type Matrix struct {
-	columns []Column
+	columns []Column // columns[0] is root node
 	numCols int
 	numRows int
 	sol     []*Node
 }
 
+// Column build a double linked list of headers to access to columns of the matrix
 type Column struct {
 	left, right *Column
 	head        Node
@@ -19,12 +23,15 @@ type Column struct {
 	id          int
 }
 
+// Node links to its neighbours and its column. It saves its row in the field value.
 type Node struct {
 	up, down, left, right *Node
 	col                   *Column
 	value                 int
 }
 
+// Initialize constructs an empty matrix with the specified number of primary (exactly once)
+// and secondary constraints (at most once).
 func Initialize(primary int, secondary int) *Matrix {
 	numCols := primary + secondary
 
@@ -55,9 +62,10 @@ func Initialize(primary int, secondary int) *Matrix {
 	return &m
 }
 
+// AddRow appends the sparse row indices to the matrix m. So the input {1, 4, 5} is appended
+// as row (1, 0, 0, 1, 1) to a matrix of width 5. The function validate that the indices of the
+// ones entries are in range and sorted in ascending order.
 func AddRow(m *Matrix, indices []int) {
-	// add sparse row encoded as indices
-
 	// input verification
 	last := -1
 	for _, element := range indices {
@@ -89,12 +97,14 @@ func AddRow(m *Matrix, indices []int) {
 	}
 }
 
+// cover removes c from the selection and removes all colliding rows. If the column c has a one entry at row i,
+// then remove this row from the matrix.
 func cover(c *Column) {
-	// remove from header row
+	// remove from header list
 	c.left.right = c.right
 	c.right.left = c.left
 
-	// cover all rows covered by column c
+	// remove colliding rows
 	for row := c.head.down; row != &(c.head); row = row.down {
 		for e := row.right; e != row; e = e.right {
 			e.up.down = e.down
@@ -106,6 +116,7 @@ func cover(c *Column) {
 	}
 }
 
+// uncover undoes the deletion done by cover(c).
 func uncover(c *Column) {
 	// uncover all rows covered by column c
 	for row := c.head.up; row != &(c.head); row = row.up {
@@ -121,8 +132,9 @@ func uncover(c *Column) {
 	c.right.left = c
 }
 
-func heuristic(m *Matrix) *Column {
-	// Knuths MRV Heuristic, choose column which is fulfilled by least number of rows
+// mrv uses Knuths MRV heuristic, which always chooses the column that can be covered by the least number
+// of rows.
+func mrv(m *Matrix) *Column {
 	minLen := -1
 	var minCol *Column
 
@@ -137,6 +149,9 @@ func heuristic(m *Matrix) *Column {
 	return minCol
 }
 
+// solve does a backtracking search using the matrix data structure. The next column is selected with the MRV
+// heuristic. Then the search goes through the options (rows) to cover the primary constraint (column). If first
+// is true, the search is stopped after the first solution is found.
 func solve(m *Matrix, collector *[][]int, first bool) []*Node {
 	// problem is solved
 	if m.columns[0].left == &m.columns[0] {
@@ -150,7 +165,7 @@ func solve(m *Matrix, collector *[][]int, first bool) []*Node {
 	}
 
 	// MRV heuristic
-	col := heuristic(m)
+	col := mrv(m)
 	if col.length == 0 {
 		return nil
 	}
@@ -159,18 +174,22 @@ func solve(m *Matrix, collector *[][]int, first bool) []*Node {
 
 	// classic backtracking algorithm
 	for r := col.head.down; r != &col.head; r = r.down {
+		// add r to solution
 		m.sol = append(m.sol, r)
 
+		// cover r
 		for n := r.right; n != r; n = n.right {
 			cover(n.col)
 		}
 
 		result := solve(m, collector, first)
 
+		// remove r from solution
 		undo := m.sol[len(m.sol)-1]
 		col = undo.col
 		m.sol = m.sol[:len(m.sol)-1]
 
+		// uncover r
 		for n := undo.left; n != undo; n = n.left {
 			uncover(n.col)
 		}
@@ -185,6 +204,8 @@ func solve(m *Matrix, collector *[][]int, first bool) []*Node {
 	return nil
 }
 
+// FindFirst uses solve to find one solution to the exact cover problem for m. It returns the options of the solution
+// represented by their row id.
 func FindFirst(m *Matrix) []int {
 	var coll [][]int
 
@@ -197,6 +218,8 @@ func FindFirst(m *Matrix) []int {
 	return coll[0]
 }
 
+// FindRows uses solve to find one solution to the exact cover problem for m. It returns the options of the solution
+// represented by their row id and content.
 func FindRows(m *Matrix) [][]bool {
 	// Return row ids and their content
 
@@ -217,6 +240,8 @@ func FindRows(m *Matrix) [][]bool {
 	return rows
 }
 
+// FindAll uses solve to find all solution to the exact cover problem for m. It returns the options of the solution
+// represented by their row id.
 func FindAll(m *Matrix) [][]int {
 	var coll [][]int
 
@@ -225,6 +250,7 @@ func FindAll(m *Matrix) [][]int {
 	return coll
 }
 
+// PrettyPrint prints a non-sparse table representation of the matrix m for debug purposes.
 func PrettyPrint(m *Matrix) {
 	var elements [][]bool
 	for i := 0; i < m.numRows; i++ {
@@ -259,9 +285,10 @@ func PrettyPrint(m *Matrix) {
 	}
 }
 
-// force row to solution before starting search
+// ForceOption ensures that a specific option value has to be included in all solutions. To find the row specified
+// by value in the sparse matrix a column containing a one entry in that row is given.
 func ForceOption(m *Matrix, id int, value int) {
-	// remove row value from m, needs column id with link to row
+	// get column from id
 	col := &m.columns[id]
 
 	// collect columns covered by forced option to cover together later, otherwise not all are found
@@ -270,17 +297,21 @@ func ForceOption(m *Matrix, id int, value int) {
 
 	for r := col.head.down; r != &col.head; r = r.down {
 		if r.value == value {
+			// add r to solution
 			m.sol = append(m.sol, r)
 
 			for n := r.right; n != r; n = n.right {
 				columns = append(columns, n.col)
 			}
 
+			// cover r
 			for _, e := range columns {
 				cover(e)
 			}
 
-			continue
+			break
 		}
 	}
 }
+
+// (c) Mia Muessig

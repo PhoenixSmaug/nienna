@@ -5,10 +5,12 @@ import (
 	"time"
 )
 
+// Sudoku represents a sudoku board with a two-dimensional array. Zero entries encode empty cells.
 type Sudoku struct {
 	Board [9][9]int
 }
 
+// ShowSudoku prints out the sudoku s.
 func ShowSudoku(s Sudoku) {
 	for i := 0; i <= 8; i++ {
 		if i%3 == 0 {
@@ -30,26 +32,27 @@ func ShowSudoku(s Sudoku) {
 	fmt.Println("+-------+-------+-------+")
 }
 
+/*
+maxQueensMatrix constructs the corresponding exact cover matrix for the sudoku problem (in each row, column and
+3x3 group every number 1:9 is contained exactly once). To encode a specific sudoku board s we use ForceOption to
+preselect the options already chosen by the entries in s.
+
++-------------+----------------------------------------------------------------------------------------------------------------+
+|      -      |    Field filled (n^2)   Row has all numbers (n^2)   Column has all numbers (n^2)   Group has all numbers (n^2) |
++-------------+----------------------------------------------------------------------------------------------------------------+
+| 1 at (1, 1) |                                                                                                                |
+| ...         |                                                                                                                |
+| n at (1, 1) |                                                                                                                |
+| 1 at (1, 2) |                                                                                                                |
+| ...         |                                                                                                                |
+| n at (1, 2) |                                                                                                                |
+| ...         |                                                                                                                |
+| 1 at (n, n) |                                                                                                                |
+| ...         |                                                                                                                |
+| n at (n, n) |                                                                                                                |
++-------------+----------------------------------------------------------------------------------------------------------------+
+*/
 func sudokuMatrix(s *Sudoku) *Matrix {
-	/*
-		+-------------+----------------------------------------------------------------------------------------------------------------+
-		|      -      |    Field filled (n^2)   Row has all numbers (n^2)   Column has all numbers (n^2)   Group has all numbers (n^2) |
-		+-------------+----------------------------------------------------------------------------------------------------------------+
-		| 1 at (1, 1) |                                                                                                                |
-		| ...         |                                                                                                                |
-		| n at (1, 1) |                                                                                                                |
-		| 1 at (1, 2) |                                                                                                                |
-		| ...         |                                                                                                                |
-		| n at (1, 2) |                                                                                                                |
-		| ...         |                                                                                                                |
-		| 1 at (n, n) |                                                                                                                |
-		| ...         |                                                                                                                |
-		| n at (n, n) |                                                                                                                |
-		+-------------+----------------------------------------------------------------------------------------------------------------+
-
-		force options of already placed numbers
-	*/
-
 	m := Initialize(4*81, 0)
 
 	for x := 1; x <= 9; x++ {
@@ -66,6 +69,7 @@ func sudokuMatrix(s *Sudoku) *Matrix {
 	for x := 1; x <= 9; x++ {
 		for y := 1; y <= 9; y++ {
 			if s.Board[x-1][y-1] != 0 {
+				// (x, y) already filled in sudoku s
 				row := s.Board[x-1][y-1] + (y-1)*9 + (x-1)*81
 				ForceOption(m, x+(y-1)*9, row)
 			}
@@ -75,6 +79,7 @@ func sudokuMatrix(s *Sudoku) *Matrix {
 	return m
 }
 
+// SolveSudoku solves the sudoku s in-situ and displays the search time.
 func SolveSudoku(s *Sudoku) bool {
 	m := sudokuMatrix(s)
 	start := time.Now()
