@@ -100,36 +100,44 @@ func AddRow(m *Matrix, indices []int) {
 // cover removes c from the selection and removes all colliding rows. If the column c has a one entry at row i,
 // then remove this row from the matrix.
 func cover(c *Column) {
+	// hide colliding rows
+	for p := c.head.down; p != &(c.head); p = p.down {
+		hide(p)
+	}
+
 	// remove from header list
 	c.left.right = c.right
 	c.right.left = c.left
+}
 
-	// remove colliding rows
-	for row := c.head.down; row != &(c.head); row = row.down {
-		for e := row.right; e != row; e = e.right {
-			e.up.down = e.down
-			e.down.up = e.up
+func hide(p *Node) {
+	for q := p.right; q != p; q = q.right {
+		q.up.down = q.down
+		q.down.up = q.up
 
-			// decrease size of column
-			e.col.length--
-		}
+		q.col.length--
 	}
 }
 
 // uncover undoes the deletion done by cover(c).
 func uncover(c *Column) {
-	// uncover all rows covered by column c
-	for row := c.head.up; row != &(c.head); row = row.up {
-		for e := row.left; e != row; e = e.left {
-			e.up.down = e
-			e.down.up = e
-
-			e.col.length++
-		}
-	}
-
+	// add to header list
 	c.left.right = c
 	c.right.left = c
+
+	// unhide colliding rows
+	for p := c.head.up; p != &(c.head); p = p.up {
+		unhide(p)
+	}
+}
+
+func unhide(p *Node) {
+	for q := p.left; q != p; q = q.left {
+		q.up.down = q
+		q.down.up = q
+
+		q.col.length++
+	}
 }
 
 // mrv uses Knuths MRV heuristic, which always chooses the column that can be covered by the least number
